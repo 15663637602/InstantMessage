@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+	http://www.springframework.org/schema/tx
+	http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+	http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context-4.0.xsd
+	http://www.springframework.org/schema/mvc
+	http://www.springframework.org/schema/mvc/spring-mvc.xsd
+	http://www.springframework.org/schema/aop
+	http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
+
+
+	<context:component-scan base-package="controller,service.impl,websocket,po,akka" />
+	<!-- handle the messy code when sending the response with JSON -->
+	<mvc:annotation-driven>
+		<mvc:message-converters>
+			<bean class="org.springframework.http.converter.StringHttpMessageConverter">
+				<property name="supportedMediaTypes">
+					<list>
+						<value>application/json;charset=UTF-8</value>
+					</list>
+				</property>
+			</bean>
+		</mvc:message-converters>
+	</mvc:annotation-driven>
+	<!-- Static resource access -->
+	<mvc:resources location="/js/" mapping="/js/**" />
+	<mvc:resources location="/css/" mapping="/css/**" />
+	<!-- interceptor -->
+	<mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="*" />
+			<mvc:exclude-mapping path="/login.do" />
+			<mvc:exclude-mapping path="/mongovalidate.do" />
+			<bean class="interceptor.LoginIntercepter"></bean>
+		</mvc:interceptor>
+	</mvc:interceptors>
+	
+	<!-- 配置ViewResolver。 可以用多个ViewResolver。 使用order属性排序。 InternalResourceViewResolver放在最后。 -->
+	<bean
+		class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+		<property name="order" value="1" />
+		<property name="mediaTypes">
+			<map>
+				<entry key="json" value="application/json" />
+				<entry key="xml" value="application/xml" />
+				<entry key="htm" value="text/html" />
+			</map>
+		</property>
+
+		<property name="defaultViews">
+			<list>
+				<!-- JSON View -->
+				<bean
+					class="org.springframework.web.servlet.view.json.MappingJackson2JsonView">
+				</bean>
+			</list>
+		</property>
+		<property name="ignoreAcceptHeader" value="true" />
+	</bean>
+	
+	<!-- page turning parsing -->
+	<bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/" />
+		<property name="suffix" value=".jsp" />
+	</bean>
+	<!-- file upload -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+	</bean>
+	<bean id="actorSystem" class="akka.actor.ActorSystem"
+		factory-method="create" destroy-method="shutdown" scope="singleton">
+	</bean>
+
+
+	<bean id="akkaSystem" class="akka.BuildActorSystem" init-method="start"
+		destroy-method="close">
+		<property name="port" value="7722"></property>
+		<property name="host" value="192.168.1.121"></property>
+		<property name="roles" value="oschat"></property>
+		<property name="seedNodes">
+			<list>
+				<value>192.168.1.121:7711</value>
+				<value>192.168.1.121:7722</value>
+			</list>
+		</property>
+	</bean>
+	
+
+
+
+</beans>
